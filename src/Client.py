@@ -8,6 +8,7 @@ from UDPSocket import UDPSocket
 
 if __name__ == '__main__':
     client = UDPSocket(PORT=51000)
-    client.connectTo(PORT=50000)
+    MSG = [1,1,[4,5,6]]
+    print(client.secureSend(MSG,PORT=50000))
 
 
