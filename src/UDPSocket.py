@@ -11,7 +11,7 @@ from hashlib import md5 as md5
 import time
 class UDPSocket:
     """
-    This Class will obfuscate the Socket communications from the Server and
+    This Class will abstract the Socket communications from the Server and
     Client Classes since the same code will mostly be used by both Classes
 
     Methods:
@@ -20,8 +20,13 @@ class UDPSocket:
             on that PORT
         send:
             Sends Python objects to desired IP and Port using Pickle
+        secureSend:
+            Sends data using a simple Stop and Wait Protocol
         Receive:
             Waits for and receives a message,decodes it, and returns it
+        secureRecieve:
+            Recieves data using a simple Stop and Wait protocol and works in
+            conjunction with the secureSend method
 
     Attributes:
         HOST: Holds the Host IP
@@ -50,14 +55,14 @@ class UDPSocket:
             MSG: Is a list of length 3 with the following data in the
                 Respective Index
                     Oth - Sequence Number of the Current Packet
-                    1st - Total Number of Packets to look out for
+                    1st - The Command
                     2nd - Message/Data to send
 
         What will be sent:
             A checksum will be sent prior to sending the message
             A serialized list with the following information in its indices
                 Oth - Sequence Number of the Current Packet
-                1st - Total Number of Packets to look out for
+                1st - The Command
                 2nd - Message/Data to send
                 3rd - Checksum Hash
         Output:
@@ -69,7 +74,6 @@ class UDPSocket:
         #Calculate the Hash
         checksum = md5(Data).hexdigest()
         MSG.append(checksum)
-        print(MSG)
         self.send(MSG,PORT,IP)
         #We now need to start a timeout counter
         for i in range(5):
@@ -115,7 +119,7 @@ class UDPSocket:
             #The Address Tuple is of the form (IP,PORT)
             self.send('ACK',Address[1],Address[0])
             #now we can return the Message to be processed
-            return data[0:-1]
+            return data[0:-1],Address
 
     def send(self,MSG,PORT,IP='127.0.0.1'):
         """
@@ -131,7 +135,7 @@ class UDPSocket:
         """
         This method will receive pickled objects
         """ 
-        data,senderAddress = self.socket.recvfrom(1024)
+        data,senderAddress = self.socket.recvfrom(20 * 1024)
         print("Received Data from: {}".format(senderAddress))
         data = pickle.loads(data)
         return data,senderAddress
