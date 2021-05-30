@@ -28,6 +28,7 @@ class Server:
         udp: Will hold the udp socket that can be used to send and recieve
             data.
         threads = will hold all the threads
+        messages = This will hold all stored messages
         clientTable: This will hold the IP addresses and Port numbers of
                     clients that are connected. The Client Table will hold 
                     the nick names of the clients in a nested dictionary of 
@@ -46,9 +47,9 @@ class Server:
     def __init__(self,PORT):
         self.udp = UDPSocket(PORT)#We create an instance of the UDPsocket
         self.clientTable = dict()#A dictionary that will hold the Client Info
-        print("Server all set up! Waiting for Connections")
         #we want to call the Main thread now
         self.threads = []#will hold all threads
+        self.messages = dict()
         self.MainThread()
     def MainThread(self):
         """
@@ -59,6 +60,7 @@ class Server:
 
         """
         while True:
+            print("Server all set up! Waiting for Connections")
             data,address = self.udp.secureRecieve()
             if data != None:
                 #We want to create a thread and send it to Process Message
@@ -81,7 +83,6 @@ class Server:
         elif command[0] == 'dereg':
             self.deRegister(data)
             #We want to de register the person
-            #TODO: Need to figure out a way to allow a person to relogin
         elif command[0] == 'send':
             pass
             #In this case we want to store the message that the client is 
@@ -89,6 +90,51 @@ class Server:
             #TODO:Need to create the Offline Chat Functionality
         else:
             print("Incorrect Command")
+            return None
+
+    def storeMessage(self,nick,MSG,address):
+        """
+        This method will first try to contact the client and if that fails
+        will store the message and relay it to the client when they reregister
+        Parameters:
+            nick: the nickname of the client being contacted
+            MSG: the Message to relay to the client
+            address: the address of the client making the request
+        """
+        #first we will get all the clients details
+        IP = self.clientTable[nick]['IP']
+        PORT = self.clientTable[nick]['PORT']
+        online = self.clientTable[nick]['Online']
+        #first we will check to see if the client is online in our records
+        if online:
+            #If they are online, we want to try to send the message to them
+            response = self.udp.secureSend(MSG,PORT,IP)
+            if response == 200:
+                #Then the client was online!
+                #we want to notify the client
+                Error = [1,"ERROR",'The client is online!']
+                self.udp.secureSend(Error,PORT,IP)
+                return None
+            else:
+                #We want to update the Status of the Client
+                self.clientTable[nick]['Online'] = False
+                #The message was not send correctly, so we want to store it
+                if nick in self.clientTable.keys():
+                    #if there is a key then we wna to append a message
+                    self.clientTable[nick].append(MSG)
+                else:
+                    #if a key doesn't already exist we want to make on
+                    self.clientTable[nick] = [MSG]
+                return None
+        else:
+            #If the client is not online we, want to store the message
+            #The message was not send correctly, so we want to store it
+            if nick in self.clientTable.keys():
+                #if there is a key then we wna to append a message
+                self.clientTable[nick].append(MSG)
+            else:
+                #if a key doesn't already exist we want to make on
+                self.clientTable[nick] = [MSG]
             return None
 
     def registerUser(self,Nick,IP,PORT):
@@ -103,6 +149,14 @@ class Server:
         """
         #we first want to check if the nickname already exists
         if Nick in self.clientTable.keys():
+            if not self.clientTable[Nick]['Online']:
+                #this means the client is logging back in
+                #if this is the case we want to just update the online status
+                self.clientTable[Nick]['Online']=True
+                #Now we want to send the updated table to the Client
+                self.updateAllClients()
+                #TODO: Create a method to send all Stored Chats
+                return None
             #If the nickname already exists, we dont want to allow it
             print("The Nickname already exist, please exit the program")
             #We want to send this to the client

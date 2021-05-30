@@ -7,6 +7,8 @@
 from UDPSocket import UDPSocket
 from threading import Thread as th
 import sys
+from datetime import datetime
+import time
 class Client:
     """
     This class will handle the opperations of the Client as described by the 
@@ -18,6 +20,12 @@ class Client:
         clientTablePrint:
             This method will print the nicknames of current clients and their
             online status
+        MainThread:
+            This is the main loop for the Client
+        ProcessMessage:
+            This will process UDP messages
+        ProcessInput:
+            Processes User Input
     Attributes:
         upd: Will hold an instance of the UDPSocket class binded to a 
             certain port and IP
@@ -94,11 +102,21 @@ class Client:
                 self.threads.append(x)
                 data = None
                 address = None
-
+        return None
     def processMessage(data,address):
         command = data[1].split(':')
         data = data[2]
-        #TODO:Create an if statement to recieve a message
+        if command[0] == 'update':
+            #This will update our table
+            self.clientTable = data[2]
+        elif command[0] == 'MSG':
+            #We just recieved a message
+            #we just want to print the message
+            if address[1] == self.serverPort:
+                print(">>> You Have Messages")
+            print('>>> {} {}'.format(datetime.now(),data))
+        else:
+            print('>>> Incorect Command. Please Try Again')
     def processInput(self):
         """
         This method will process any inputs that is recieved by the client, 
@@ -107,9 +125,15 @@ class Client:
         """
         while True:
             command = input(">>> ").split(' ') 
+            print(command)
             if command[0] == 'send':
                 #we want to send a message
-                self.sendMessage(command[1],data)
+                nick = command[1]
+                data = command[2]
+                self.sendMessage(nick,data)
+            elif command[0] == 'clients':
+                #This will list the clients
+                print(self.clientTablePrint())
             elif command[0] == 'dereg':
                 #we want to deregister the user
                 MSG = [1,'dereg',self.Nick]
@@ -123,11 +147,47 @@ class Client:
                     print("Exiting...")
                     sys.exit()#this will exit the whole program
             
-    def sendMessage(nick,MSG):
-        print("Send a Message")
-        #TODO:Create this method to go and find a the IP and Port of a nickname
+    def sendMessage(self,nick,MSG):
+        """
+        This method will send a message to a client. It will try to send a 
+        message directly to a client, if the client is currently offline or
+        is unreachable the method will instead encode and send the message
+        to the Server to store
+        """
+        #we can first get the IP and PORT of the client we want to contact
+        IP = self.clientTable[nick]['IP']
+        PORT = self.clientTable[nick]['PORT']
+        #we can check if the client is online
+        MSG = [1,'MSG:'+nick,nick+": "+MSG]
+        if not (self.clientTable[nick]['Online']):
+            #since the client is not online we will need to send the server 
+            #our message
+            response = udp.secureSend(MSG,self.serverPort,self.serverIP)
+            if response == 200:
+                #The data was successfully stored
+                print("Your Message was Successfully Saved in the Server!")
+                return None
+            else:
+                #then there was an error connecting to the server
+                print("There was an error sending the message to the Server")
+        else:
+            #We want to try and see if we can successfully send a message
+            response = self.udp.secureSend(MSG,PORT,IP)
+            if response == 200:
+                #Everything checked out fine!
+                return None
+            else:
+                #Client is offline so we need to send our message t the server
+                response = self.udp.secureSend(MSG,self.serverPort,self.serverIP)
+                if response == 200:
+                    #We successfully sent the message to the Server
+                    print("Client was offline. Sent the message to the Server")
+                    data,_ =self.udp.secureRecieve()
+                    if data[1] == 'ERROR':
+                        print(data[2])
+                    
         
-        
+            
 
 if __name__ == '__main__':
     client = Client('Buddy','127.0.0.1',50020,50000)
