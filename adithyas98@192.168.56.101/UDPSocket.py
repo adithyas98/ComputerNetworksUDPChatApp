@@ -113,7 +113,7 @@ class UDPSocket:
         #Now we can check the checksum
         dataToCheck = pickle.dumps(rdata[2])
         checksum = md5(dataToCheck).hexdigest()
-        if len(rdata) >= 4:
+        if len(rdata) == 4:
             if checksum == rdata[3]:
                 #Everything checks out!
                 #we need to send an ACK
@@ -137,5 +137,6 @@ class UDPSocket:
         This method will receive pickled objects
         """ 
         data,senderAddress = self.socket.recvfrom(20 * 1024)
+        print("Received Data from: {}".format(senderAddress))
         data = pickle.loads(data)
         return data,senderAddress

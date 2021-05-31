@@ -63,9 +63,7 @@ class Server:
         while True:
             try:
                 data,address = self.udp.secureRecieve()
-            except TypeError:
-                #For some reason every once in a while we have a bad input
-                # And the program crashes
+            except:
                 continue
             if data != None:
                 #We want to create a thread and send it to Process Message
@@ -88,10 +86,10 @@ class Server:
         elif command[0] == 'dereg':
             self.deRegister(data)
             #We want to de register the person
-        elif command[0] == 'MSG':
+        elif command[0] == 'send':
+            pass
             #In this case we want to store the message that the client is 
               #sending and send it later
-              self.storeMessage(command[1],data,address)
         else:
             print("Incorrect Command")
             return None
@@ -123,7 +121,7 @@ class Server:
                 #We want to update the Status of the Client
                 self.clientTable[nick]['Online'] = False
                 #The message was not send correctly, so we want to store it
-                if nick in self.messages:
+                if nick in self.clientTable.keys():
                     #if there is a key then we wna to append a message
                     self.messages[nick].append(MSG)
                 else:
@@ -133,7 +131,7 @@ class Server:
         else:
             #If the client is not online we, want to store the message
             #The message was not send correctly, so we want to store it
-            if nick in self.messages.keys():
+            if nick in self.clientTable.keys():
                 #if there is a key then we wna to append a message
                 self.messages[nick].append(MSG)
             else:
@@ -144,21 +142,16 @@ class Server:
         """
         This method will send registered users offline messages
         """
-        #first we want to check to see if the user has any messages
-        if nick in self.messages:
-            #we want to iterate over the list of messages stored
-            for message in self.messages[nick]:
-                MSG = [1,"MSG:",message]
-                #figure out the IP and Port of the client
-                IP = self.clientTable[nick]['IP']
-                PORT = self.clientTable[nick]['PORT']
-                #now we can send the message
-                self.udp.secureSend(MSG,PORT,IP)
-            #After this we can return
-            return None
-        else:
-            #There aren't any messages so we can just return
-            return None
+        #we want to iterate over the list of messages stored
+        for message in self.message[nick]:
+            MSG = [1,"MSG:",message]
+            #figure out the IP and Port of the client
+            IP = self.clientTable[nick]['IP']
+            PORT = self.clientTable[nick]['PORT']
+            #now we can send the message
+            self.udp.secureSend(MSG,IP,PORT)
+        #After this we can return
+        return None
 
     def registerUser(self,Nick,IP,PORT):
         """
@@ -171,14 +164,14 @@ class Server:
             PORT: The Port of the Client
         """
         #we first want to check if the nickname already exists
-        if Nick in self.clientTable:
+        if Nick in self.clientTable.keys():
             if not self.clientTable[Nick]['Online']:
                 #this means the client is logging back in
                 #if this is the case we want to just update the online status
                 self.clientTable[Nick]['Online']=True
                 #Now we want to send the updated table to the Client
                 self.updateAllClients()
-                self.sendStored(Nick)
+                #TODO: Create a method to send all Stored Chats
                 return None
             #If the nickname already exists, we dont want to allow it
             print("The Nickname already exist, please exit the program")
@@ -193,6 +186,7 @@ class Server:
         client['Online'] = True
         #Now we need to add the data to the full Client Table
         self.clientTable[Nick] = client
+        print("Debug:{}".format(self.clientTable))
         print("Registered {} at {}:{}".format(Nick,IP,PORT))
         #Now that we have updated the table, we can tell all existing clients
         self.updateAllClients()

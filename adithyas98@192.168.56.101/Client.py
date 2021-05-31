@@ -61,10 +61,8 @@ class Client:
         #We need to wait to receive the client table
         while True:
             try:
-                data,Address = self.udp.secureRecieve()
-                if data != None:
-                    break
-            except TypeError:
+                data,_ = self.udp.secureRecieve()
+            except:
                 continue
         if data[2] == "ERROR":
             #Nickname is already taken
@@ -101,10 +99,7 @@ class Client:
         self.threads.append(y)
         while True:
             #We will use this as out main loop to listen for inputs
-            try:
-                data,address = self.udp.secureRecieve()
-            except TypeError:
-                continue
+            data,address = self.udp.secureRecieve()
             if data != None:
                 x=th(target=self.processMessage,args=(data,address),daemon=True)
                 x.start()
@@ -138,14 +133,14 @@ class Client:
             if command[0] == 'send':
                 #we want to send a message
                 nick = command[1]
-                data = " ".join(command[2:])#Combine the list into strings
+                data = command[2]
                 self.sendMessage(nick,data)
             elif command[0] == 'clients':
                 #This will list the clients
                 print(self.clientTablePrint())
             elif command[0] == 'dereg':
                 #we want to deregister the user
-                MSG = [1,'dereg:',self.Nick]
+                MSG = [1,'dereg',self.Nick]
                 self.udp.secureSend(MSG,self.serverPort,self.serverIP)
                 data,_ = self.udp.secureRecieve()
                 if data[2] == 'ACK':
@@ -163,19 +158,15 @@ class Client:
         is unreachable the method will instead encode and send the message
         to the Server to store
         """
-        if nick not in self.clientTable:
-            #Then we want to say the client doesn't exist
-            print(">>> No Record of that Client. Please try again!")
-            return None
         #we can first get the IP and PORT of the client we want to contact
         IP = self.clientTable[nick]['IP']
         PORT = self.clientTable[nick]['PORT']
         #we can check if the client is online
-        MSG = [1,'MSG:'+nick,self.Nick+": "+MSG]
+        MSG = [1,'MSG:'+nick,nick+": "+MSG]
         if not (self.clientTable[nick]['Online']):
             #since the client is not online we will need to send the server 
             #our message
-            response = self.udp.secureSend(MSG,self.serverPort,self.serverIP)
+            response = udp.secureSend(MSG,self.serverPort,self.serverIP)
             if response == 200:
                 #The data was successfully stored
                 print("Your Message was Successfully Saved in the Server!")
