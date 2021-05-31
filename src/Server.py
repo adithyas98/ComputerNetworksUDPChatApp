@@ -50,6 +50,7 @@ class Server:
         #we want to call the Main thread now
         self.threads = []#will hold all threads
         self.messages = dict()
+        print("Server all set up! Waiting for Connections")
         self.MainThread()
     def MainThread(self):
         """
@@ -60,8 +61,10 @@ class Server:
 
         """
         while True:
-            print("Server all set up! Waiting for Connections")
-            data,address = self.udp.secureRecieve()
+            try:
+                data,address = self.udp.secureRecieve()
+            except:
+                continue
             if data != None:
                 #We want to create a thread and send it to Process Message
                 x=th(target=self.processMessage,args=(data,address),daemon=True)
@@ -87,7 +90,6 @@ class Server:
             pass
             #In this case we want to store the message that the client is 
               #sending and send it later
-            #TODO:Need to create the Offline Chat Functionality
         else:
             print("Incorrect Command")
             return None
@@ -121,21 +123,35 @@ class Server:
                 #The message was not send correctly, so we want to store it
                 if nick in self.clientTable.keys():
                     #if there is a key then we wna to append a message
-                    self.clientTable[nick].append(MSG)
+                    self.messages[nick].append(MSG)
                 else:
                     #if a key doesn't already exist we want to make on
-                    self.clientTable[nick] = [MSG]
+                    self.messages[nick] = [MSG]
                 return None
         else:
             #If the client is not online we, want to store the message
             #The message was not send correctly, so we want to store it
             if nick in self.clientTable.keys():
                 #if there is a key then we wna to append a message
-                self.clientTable[nick].append(MSG)
+                self.messages[nick].append(MSG)
             else:
                 #if a key doesn't already exist we want to make on
-                self.clientTable[nick] = [MSG]
+                self.messages[nick] = [MSG]
             return None
+    def sendStored(self,nick):
+        """
+        This method will send registered users offline messages
+        """
+        #we want to iterate over the list of messages stored
+        for message in self.message[nick]:
+            MSG = [1,"MSG:",message]
+            #figure out the IP and Port of the client
+            IP = self.clientTable[nick]['IP']
+            PORT = self.clientTable[nick]['PORT']
+            #now we can send the message
+            self.udp.secureSend(MSG,IP,PORT)
+        #After this we can return
+        return None
 
     def registerUser(self,Nick,IP,PORT):
         """
@@ -192,6 +208,7 @@ class Server:
             if clientData['Online'] == True:
                 #we only want to send the updated table to the clients online
                 response = self.udp.secureSend(MSG,PORT,IP)
+                
                 
         #we updated all the clients so we can print it to the console
         print("Updated All Clients")

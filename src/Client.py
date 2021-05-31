@@ -59,7 +59,11 @@ class Client:
         print("We successfully connected to the Server!\n")
         print("Waiting for the updated table of Clients")
         #We need to wait to receive the client table
-        data,_ = self.udp.secureRecieve()
+        while True:
+            try:
+                data,_ = self.udp.secureRecieve()
+            except:
+                continue
         if data[2] == "ERROR":
             #Nickname is already taken
             print("Nickname is already taken. Please Try Again.")
