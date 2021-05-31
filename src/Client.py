@@ -103,12 +103,12 @@ class Client:
                 data = None
                 address = None
         return None
-    def processMessage(data,address):
+    def processMessage(self,data,address):
         command = data[1].split(':')
         data = data[2]
         if command[0] == 'update':
             #This will update our table
-            self.clientTable = data[2]
+            self.clientTable = data
         elif command[0] == 'MSG':
             #We just recieved a message
             #we just want to print the message

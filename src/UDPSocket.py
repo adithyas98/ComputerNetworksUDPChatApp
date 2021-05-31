@@ -104,22 +104,23 @@ class UDPSocket:
         while True:
             try:
                 #recieve the Data
-                data,Address = self.recieve()
-                if data != None:
+                rdata,Address = self.recieve()
+                if rdata != None:
                     break
             except socket.timeout as e:
                 continue
 
         #Now we can check the checksum
-        dataToCheck = pickle.dumps(data[2])
+        dataToCheck = pickle.dumps(rdata[2])
         checksum = md5(dataToCheck).hexdigest()
-        if checksum == data[3]:
-            #Everything checks out!
-            #we need to send an ACK
-            #The Address Tuple is of the form (IP,PORT)
-            self.send('ACK',Address[1],Address[0])
-            #now we can return the Message to be processed
-            return data[0:-1],Address
+        if len(rdata) == 4:
+            if checksum == rdata[3]:
+                #Everything checks out!
+                #we need to send an ACK
+                #The Address Tuple is of the form (IP,PORT)
+                self.send('ACK',Address[1],Address[0])
+                #now we can return the Message to be processed
+                return rdata[0:-1],Address
 
     def send(self,MSG,PORT,IP='127.0.0.1'):
         """
