@@ -113,6 +113,9 @@ class Client:
                 address = None
         return None
     def processMessage(self,data,address):
+        """
+        This method processes all incoming UDP packets
+        """
         command = data[1].split(':')
         data = data[2]
         if command[0] == 'update':
