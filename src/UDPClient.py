@@ -21,7 +21,6 @@ def Main(arguments):
     This method will use the system arguments in order to run the correct 
     script and and input the input parameters to the program
     """
-    print(arguments)
     if arguments[0] == '-s':
         #then we want to call the server
         if len(arguments) > 2:
