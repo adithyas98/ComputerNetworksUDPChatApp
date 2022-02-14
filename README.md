@@ -1,9 +1,4 @@
-% Computer Networks UDP Chat App 
-% Adithya Shastry (ams2590)
-% June 2nd, 2021
 
-\maketitle
-\newpage
 # Introduction
 
 A Simple Command Line Chat Application built on the UDP protocol 
